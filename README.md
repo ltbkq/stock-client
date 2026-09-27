@@ -37,6 +37,20 @@
 | 预警提醒（四类规则） | `alerts.py` 边沿触发引擎 + `ui/alerts_dialog.py` 管理窗口 + 托盘通知 |
 | 数据 / 缓存 / 线程 | `eastmoney.py`(`data_sources.json`) / `cache.py` / `workers.py` |
 
+## 下载安装包
+
+见 [Releases](https://github.com/ltbkq/stock-client/releases)：Linux（`.deb` / `.rpm` / `.tar.gz`）、
+Windows（`.zip`）、macOS（`.zip`），由 CI 在对应系统上构建。
+
+```bash
+# Debian / Ubuntu
+sudo apt install ./stock-client_<ver>_amd64.deb
+# Fedora / RHEL
+sudo rpm -i stock-client-<ver>-1.x86_64.rpm
+# 便携包（免安装）
+tar -xzf stock-client_<ver>_linux_x86_64.tar.gz && ./stock-client --demo
+```
+
 ## 安装与运行
 
 ```bash
@@ -109,7 +123,11 @@ python3 -m venv .venv
 stock-client/
 ├── run.py                     # 入口（--demo / --no-proxy）
 ├── requirements.txt
-├── scripts/smoke.py           # 无头冒烟测试
+├── deepseek.txt               # 设计文档 v3.0
+├── packaging/                 # PyInstaller spec、build.sh、make-packages.sh、linux/（deb/rpm/desktop/图标）
+├── docs/                      # GitHub Pages 落地页与截图
+├── .github/workflows/         # ci.yml + release.yml（多系统安装包）
+├── scripts/                   # smoke.py（冒烟）/ screenshot.py（截图）
 ├── stockclient/
 │   ├── data_sources.json      # ★ 数据源配置（接口/参数/字段映射，可用户覆盖）
 │   ├── datasource.py          # 配置加载与深合并

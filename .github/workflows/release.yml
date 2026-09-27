@@ -1,0 +1,78 @@
+name: Release packages
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach packages to (e.g. v0.4.2)"
+        required: true
+        default: "v0.4.2"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }} packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  name: linux }
+          - { os: windows-latest, name: windows }
+          - { os: macos-latest,   name: macos }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build (PyInstaller)
+        run: python -m PyInstaller packaging/stockclient.spec --noconfirm
+
+      - name: Package (Linux: tar.gz + deb + rpm)
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends rpm
+          chmod +x packaging/make-packages.sh
+          packaging/make-packages.sh "${VERSION#v}"
+
+      - name: Package (Windows: zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.tag || github.ref_name }}".TrimStart("v")
+          New-Item -ItemType Directory -Force dist/packages | Out-Null
+          Compress-Archive -Path dist/stock-client.exe `
+            -DestinationPath "dist/packages/stock-client_${v}_windows_x86_64.zip" -Force
+
+      - name: Package (macOS: zip)
+        if: runner.os == 'macOS'
+        run: |
+          v="${{ github.event.inputs.tag || github.ref_name }}"; v="${v#v}"
+          mkdir -p dist/packages
+          if [ -d dist/stock-client.app ]; then
+            (cd dist && zip -ry "packages/stock-client_${v}_macos_${RUNNER_ARCH}.zip" stock-client.app)
+          else
+            (cd dist && zip -j "packages/stock-client_${v}_macos_${RUNNER_ARCH}.zip" stock-client)
+          fi
+
+      - name: Attach packages to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: dist/packages/*
+          fail_on_unmatched_files: true

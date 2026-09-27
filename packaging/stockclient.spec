@@ -18,7 +18,8 @@ block_cipher = None
 
 # ship the editable data-source config beside the package (datasource.py reads it
 # via Path(__file__).with_name("data_sources.json"))
-_pkg_dir = os.path.join(SPECPATH, "stockclient")
+_repo_root = os.path.abspath(os.path.join(SPECPATH, os.pardir))
+_pkg_dir = os.path.join(_repo_root, "stockclient")
 stockclient_datas = [(os.path.join(_pkg_dir, "data_sources.json"), "stockclient")]
 
 # pyqtgraph loads many graphics item classes by name at runtime; make sure
@@ -69,7 +70,7 @@ pyqtgraph_hidden = [
 ]
 
 a = Analysis(
-    ["../run.py"],
+    [os.path.join(_repo_root, "run.py")],
     pathex=[],
     binaries=[],
     datas=collect_data_files("pyqtgraph", includes=["**/*.ui", "**/*.qss", "**/*.png"])

@@ -37,6 +37,14 @@
   `stockclient/eastmoney.py`、`tests/test_datasource.py`（新）、README。
 - 验收：`load_source` 深合并用户覆盖；`eastmoney` 常量来自配置；测试通过。
 
+### T6 · 发行安装包（deb / rpm / zip）
+- 目标：产出常规安装包并随 Release 发布：Linux `.deb`（dpkg-deb）、`.rpm`
+  （rpmbuild）、`.tar.gz`；Windows/macOS `.zip`。
+- 涉及：`packaging/make-packages.sh`、`packaging/linux/`（desktop/图标/rpm spec）、
+  `.github/workflows/release.yml`。
+- 验收：本地产出并通过 `dpkg-deb -I/-c` 校验；CI 在 ubuntu/windows/macos 构建并
+  附加到 Release。
+
 ## 流水集成顺序
 
 1. **基线**：合并 T1–T4 前，先推送当前可用版本（v0.3.0）。
@@ -52,3 +60,4 @@
 - [x] T3 数据层（clist 批量 / trends2 / suggest / 指标测试）
 - [x] T4 打包 + CI + 文档
 - [x] T5 数据源独立配置文件（可用户覆盖）
+- [x] T6 发行安装包（deb/rpm/tar.gz/zip）

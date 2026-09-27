@@ -5,6 +5,27 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-27
+
+### Added
+
+- **Linux 安装包**：`packaging/make-packages.sh` 产出便携 `.tar.gz`、
+  Debian/Ubuntu `.deb`（`dpkg-deb`）与 Fedora/RHEL `.rpm`（`rpmbuild`），
+  含 desktop 入口、图标与依赖声明（`packaging/linux/`）。
+- **Windows / macOS 便携包**：`.zip`（Windows 便携 exe；macOS app/可执行）。
+- **Release packages 工作流**（`.github/workflows/release.yml`）：打 `v*` tag
+  或手动触发时，在 ubuntu / windows / macos 上构建并把安装包附加到对应 Release。
+
+### Fixed
+
+- PyInstaller spec 的数据文件路径误用 `SPECPATH`（会指向
+  `packaging/stockclient`），修正为仓库根的 `stockclient/`；`run.py` 入口
+  同样改为基于仓库根解析。
+
+### Docs
+
+- `packaging/README.md` 补充安装包构建说明；根 README 增加下载说明。
+
 ## [0.4.1] - 2026-09-27
 
 ### Fixed
@@ -94,7 +115,8 @@
 - **测试**：解析器与预警单元测试（`tests/`）、无头端到端冒烟测试
   （`scripts/smoke.py`）。
 
-[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.2
 [0.4.1]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.1
 [0.4.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.3.0

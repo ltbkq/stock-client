@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=自选股行情分析客户端
+Name[en]=Stock Client
+GenericName=Stock Quote Client
+Comment=A-share watchlist and chart client (East Money)
+Comment[zh_CN]=自选股行情分析客户端（东方财富数据源）
+Exec=stock-client
+Icon=stock-client
+Terminal=false
+Categories=Finance;Office;
+Keywords=stock;quote;chart;A-share;自选股;行情;
+StartupNotify=true
+StartupWMClass=stock-client
