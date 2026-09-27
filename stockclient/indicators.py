@@ -9,6 +9,16 @@ def close_array(bars) -> np.ndarray:
     return np.array([b.close for b in bars], dtype=float)
 
 
+def avg_price(bars) -> np.ndarray:
+    """分时均价线：累计成交额 / 累计成交量；累计量为 0 的位置返回 nan。"""
+    amount = np.array([b.amount for b in bars], dtype=float)
+    volume = np.array([b.volume for b in bars], dtype=float)
+    cum_volume = np.cumsum(volume)
+    out = np.full(len(bars), np.nan)
+    np.divide(np.cumsum(amount), cum_volume, out=out, where=cum_volume > 0)
+    return out
+
+
 def ma(values: np.ndarray, n: int) -> np.ndarray:
     if len(values) < n:
         return np.full(len(values), np.nan)

@@ -1,6 +1,10 @@
 import unittest
+from datetime import datetime
 
-from stockclient.eastmoney import parse_kline, parse_orderbook, parse_snapshot, secid
+from stockclient.eastmoney import (
+    LIST_URL, SUGGEST_URL, EastMoneyClient,
+    parse_clist, parse_kline, parse_orderbook, parse_snapshot, parse_trends, secid,
+)
 
 
 class SecidTest(unittest.TestCase):
@@ -75,6 +79,137 @@ class KlineTest(unittest.TestCase):
         self.assertEqual(b.high, 1712.0)
         self.assertEqual(b.low, 1680.0)
         self.assertAlmostEqual(b.volume, 1234500.0)
+
+
+class ClistTest(unittest.TestCase):
+    # canned clist/get payload: 2 normal rows + 1 suspended (f2 == "-")
+    PAYLOAD = {"data": {"total": 3, "diff": [
+        {"f12": "600519", "f14": "贵州茅台", "f2": 1700.0, "f3": 2.3, "f4": 38.2,
+         "f5": 123456, "f6": 2100000000.0, "f15": 1712.0, "f16": 1685.0,
+         "f17": 1690.0, "f18": 1661.8, "f168": 0.98},
+        {"f12": "000001", "f14": "平安银行", "f2": 12.5, "f3": -0.8, "f4": -0.1,
+         "f5": 50000, "f6": 625000000.0, "f15": 12.6, "f16": 12.3,
+         "f17": 12.45, "f18": 12.6, "f168": 0.5},
+        {"f12": "300750", "f14": "宁德时代", "f2": "-", "f3": "-", "f4": "-",
+         "f5": 0, "f6": 0, "f15": "-", "f16": "-", "f17": "-",
+         "f18": 200.0, "f168": 0},
+    ]}}
+
+    def test_parse(self):
+        qs = parse_clist(self.PAYLOAD)
+        self.assertEqual(len(qs), 3)
+        q = qs[0]
+        self.assertEqual(q.code, "600519")
+        self.assertEqual(q.name, "贵州茅台")
+        self.assertAlmostEqual(q.price, 1700.0)
+        self.assertAlmostEqual(q.prev_close, 1661.8)
+        self.assertAlmostEqual(q.change, 38.2, places=1)
+        self.assertAlmostEqual(q.pct, 2.30, places=1)
+        self.assertAlmostEqual(q.open, 1690.0)
+        self.assertAlmostEqual(q.high, 1712.0)
+        self.assertAlmostEqual(q.low, 1685.0)
+        self.assertAlmostEqual(q.volume, 12345600.0)    # 手 -> 股
+        self.assertAlmostEqual(q.amount, 2100000000.0)
+        self.assertAlmostEqual(q.turnover, 0.98)
+
+    def test_suspended(self):
+        q = parse_clist(self.PAYLOAD)[2]
+        self.assertEqual(q.code, "300750")
+        self.assertEqual(q.price, 0.0)                 # f2 == "-" -> 停牌
+        self.assertEqual(q.high, 0.0)
+        self.assertAlmostEqual(q.prev_close, 200.0)
+
+    def test_empty(self):
+        self.assertEqual(parse_clist({}), [])
+        self.assertEqual(parse_clist({"data": None}), [])
+        self.assertEqual(parse_clist({"data": {"diff": None}}), [])
+
+
+class TrendsTest(unittest.TestCase):
+    # canned trends2/get payload: time, open, close, high, low, 手, amount, avg
+    PAYLOAD = {"data": {"code": "600519", "klines": [
+        "2024-01-02 09:31,1685.00,1686.00,1687.00,1684.00,1234,2100000.0,1685.50",
+        "2024-01-02 09:32,1686.00,1685.50,1686.50,1685.00,900,1500000.0,1685.80",
+    ]}}
+
+    def test_parse(self):
+        bars = parse_trends(self.PAYLOAD)
+        self.assertEqual(len(bars), 2)
+        b = bars[0]
+        self.assertEqual(b.dt, datetime(2024, 1, 2, 9, 31))
+        self.assertEqual(b.open, 1685.0)
+        self.assertEqual(b.close, 1686.0)      # note: open, close, high, low
+        self.assertEqual(b.high, 1687.0)
+        self.assertEqual(b.low, 1684.0)
+        self.assertAlmostEqual(b.volume, 123400.0)    # 手 -> 股
+        self.assertAlmostEqual(b.amount, 2100000.0)
+
+    def test_empty(self):
+        self.assertEqual(parse_trends({}), [])
+        self.assertEqual(parse_trends({"data": {"klines": None}}), [])
+
+
+class ClientTest(unittest.TestCase):
+    """Client methods with a stubbed _get (no network)."""
+
+    def test_clist_single_request_filters(self):
+        client = EastMoneyClient()
+        calls = []
+
+        def fake_get(url, params):
+            calls.append((url, params))
+            return ClistTest.PAYLOAD
+
+        client._get = fake_get
+        qs = client.clist(["600519", "000001", "300750", "999999"])
+        self.assertEqual(len(calls), 1)                # 一次请求拉全自选股
+        url, params = calls[0]
+        self.assertEqual(url, LIST_URL)
+        self.assertEqual(params["fs"], "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:3")
+        self.assertEqual(params["fields"],
+                         "f12,f14,f2,f3,f4,f5,f6,f15,f16,f17,f18,f168")
+        self.assertEqual([q.code for q in qs],
+                         ["600519", "000001", "300750"])   # 999999 被过滤
+
+    def test_trends_uses_parse_trends(self):
+        client = EastMoneyClient()
+        client._get = lambda url, params: TrendsTest.PAYLOAD
+        bars = client.trends("600519")
+        self.assertEqual(len(bars), 2)
+        self.assertEqual(bars[0].dt, datetime(2024, 1, 2, 9, 31))
+        self.assertAlmostEqual(bars[0].volume, 123400.0)
+
+    def test_suggest(self):
+        client = EastMoneyClient()
+        payload = {"QuotationCodeTable": {"Data": [
+            {"Code": "600519", "Name": "贵州茅台", "MktNum": "1"},
+            {"Code": "600520", "Name": "贵州茅台集团", "MktNum": "1"},
+            {"Code": "000001", "Name": "平安银行", "MktNum": "0"},
+        ]}}
+        seen = {}
+
+        def fake_get(url, params):
+            seen.update(params)
+            return payload
+
+        client._get = fake_get
+        out = client.suggest("茅台", limit=2)
+        self.assertEqual(seen["input"], "茅台")
+        self.assertEqual(seen["type"], 14)
+        self.assertEqual(seen["count"], 2)
+        self.assertEqual(out, [("600519", "贵州茅台"), ("600520", "贵州茅台集团")])
+
+    def test_suggest_defensive(self):
+        client = EastMoneyClient()
+        client._get = lambda url, params: {"QuotationCodeTable": {"Data": [
+            {"Code": "600519", "Name": "贵州茅台", "MktNum": "1"},
+            {"Code": "", "Name": "缺代码", "MktNum": "1"},
+            {"Name": "缺代码字段", "MktNum": "0"},
+            "garbage",
+        ]}}
+        self.assertEqual(client.suggest("茅台"), [("600519", "贵州茅台")])
+        client._get = lambda url, params: {}
+        self.assertEqual(client.suggest("茅台"), [])
 
 
 if __name__ == "__main__":

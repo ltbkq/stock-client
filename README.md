@@ -1,5 +1,8 @@
 # 自选股行情分析客户端
 
+[![CI](https://github.com/ltbkq/stock-client/actions/workflows/ci.yml/badge.svg)](https://github.com/ltbkq/stock-client/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 `deepseek.txt`（v3.0 设计文档）的可运行参考实现：桌面原生 **PySide6/Qt**，
 行情源为 **东方财富** 公开接口，另带完全离线的演示模式。
 
@@ -17,11 +20,11 @@
 | 4 成交量副图 | `chart.py::_draw_volume` |
 | 5 指标副图（MACD/KDJ/RSI） | `chart.py::_draw_indicator` |
 | 6 盘口五档 | `ui/orderbook.py` |
-| 7 分时图 | 周期下拉选「分时」(`trends2` / 离线生成) |
+| 7 分时图（走势线+均价线+分钟量） | `chart.py::set_intraday`、`indicators.py::avg_price` |
 | 8 底部工具条 + 导出/全屏 | `main_window.py::_build_bottom_bar`、`_export`、`_toggle_fullscreen` |
 | 9 状态栏 | `main_window.py::_build_status_bar` |
-| 预警提醒 | `alerts.py`（边沿触发规则引擎）+ 托盘通知 |
-| 数据 / 缓存 / 线程 | `eastmoney.py` / `cache.py` / `workers.py` |
+| 预警提醒（四类规则） | `alerts.py` 边沿触发引擎 + `ui/alerts_dialog.py` 管理窗口 + 托盘通知 |
+| 数据 / 缓存 / 线程 | `eastmoney.py`(`data_sources.json`) / `cache.py` / `workers.py` |
 
 ## 安装与运行
 
@@ -48,6 +51,47 @@ python3 -m venv .venv
 `scripts/smoke.py` 在 `QT_QPA_PLATFORM=offscreen` 下构造完整窗口、跑轮询、
 断言自选股 / K 线 / 盘口均收到数据，并把图表导出为 PNG。
 
+## 数据源配置（改接口不用改代码）
+
+所有接口地址、请求参数、字段映射、周期/复权码表、限频都存放在独立配置文件
+[`stockclient/data_sources.json`](stockclient/data_sources.json)：
+
+```jsonc
+{
+  "active": "eastmoney",
+  "sources": {
+    "eastmoney": {
+      "endpoints": { "snapshot": "...", "kline": "...", "trends": "...", "list": "...", "suggest": "..." },
+      "params":    { "snapshot": {...}, "kline": {...}, ... },
+      "periods":   { "day": 101, "week": 102, ... },
+      "adjusts":   { "pre": 1, "none": 0, "post": 2 },
+      "field_map": { "snapshot": { "price": "f43", ... }, "orderbook": {...}, "clist": {...} },
+      "request":   { "timeout": 8.0, "retries": 3, "min_interval": 0.2 }
+    }
+  }
+}
+```
+
+用户覆盖层（与内置默认逐字段深合并，无需改仓库文件）：
+
+```bash
+# 生成一份可编辑的用户配置
+.venv/bin/python -c "from stockclient.datasource import export_user_config as e; print(e())"
+# 默认写入 ~/.config/stock-client/data_sources.json，改完重启即生效
+```
+
+- 只覆盖需要改的字段即可，其余沿用内置默认（例如只改 `endpoints.snapshot`）。
+- 也可用环境变量 `STOCKCLIENT_CONFIG_DIR` 改变用户配置目录。
+- 字段映射（`field_map`）让「接口换字段号」变成改 JSON；解析器对缺失字段、
+  停牌、`"-"` 均容错。
+- 新增数据源：在 `sources` 下再加一个块并把 `active` 指向它。
+
+## 开发 / Contributing
+
+- 环境搭建、测试命令、代码风格与 PR 流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 任务拆分与集成顺序见 [ROADMAP.md](ROADMAP.md)。
+- 可执行文件打包说明见 [packaging/README.md](packaging/README.md)。
+
 ## 目录结构
 
 ```
@@ -56,16 +100,18 @@ stock-client/
 ├── requirements.txt
 ├── scripts/smoke.py           # 无头冒烟测试
 ├── stockclient/
-│   ├── config.py              # JSON 配置（分组/周期/复权/主题/布局）
+│   ├── data_sources.json      # ★ 数据源配置（接口/参数/字段映射，可用户覆盖）
+│   ├── datasource.py          # 配置加载与深合并
+│   ├── config.py              # 应用配置（分组/周期/复权/主题/布局）
 │   ├── models.py              # Quote / Bar / OrderBook / Alert
-│   ├── eastmoney.py           # 东方财富客户端 + 纯函数解析器
+│   ├── eastmoney.py           # 东方财富客户端 + 纯函数解析器（读 data_sources.json）
 │   ├── cache.py               # SQLite（或内存）K 线缓存 + LRU
-│   ├── indicators.py          # MA/EMA/MACD/KDJ/RSI/BOLL
+│   ├── indicators.py          # MA/EMA/MACD/KDJ/RSI/BOLL/均价
 │   ├── sample.py              # 离线确定性样例数据
-│   ├── alerts.py              # 预警规则引擎（边沿触发）
+│   ├── alerts.py              # 预警规则引擎（四类、边沿触发）
 │   ├── workers.py             # DataService + QThreadPool 轮询
-│   └── ui/                    # main_window / chart / watchlist / orderbook / style
-└── tests/                     # 解析器与预警单元测试
+│   └── ui/                    # main_window / chart / watchlist / orderbook / alerts_dialog / style
+└── tests/                     # 解析器 / 预警 / 指标 / 数据源配置 单元测试
 ```
 
 ## 数据源说明与注意事项
@@ -80,6 +126,6 @@ stock-client/
 
 ## 已知限制
 
-- 分时图当前复用 K 线渲染，未单独绘制均价线；预警暂只支持价格上穿。
+- 分时图已单独渲染走势线与均价线；盘口/分时刷新与主行情同频。
 - 网络在后端代理波动时会重试；极端情况下降级到缓存并在状态栏标红。
 - 线框图（`deepseek.txt`）固定 80 列，仅约束文档，不影响窗口布局。

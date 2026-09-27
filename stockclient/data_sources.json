@@ -1,0 +1,117 @@
+{
+  "active": "eastmoney",
+  "sources": {
+    "eastmoney": {
+      "label": "东方财富",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Referer": "https://quote.eastmoney.com/"
+      },
+      "request": {
+        "timeout": 8.0,
+        "retries": 3,
+        "min_interval": 0.2,
+        "trust_env": true
+      },
+      "volume_multiplier": 100,
+      "endpoints": {
+        "snapshot": "https://push2.eastmoney.com/api/qt/stock/get",
+        "list": "https://push2.eastmoney.com/api/qt/clist/get",
+        "kline": "https://push2his.eastmoney.com/api/qt/stock/kline/get",
+        "trends": "https://push2his.eastmoney.com/api/qt/stock/trends2/get",
+        "suggest": "https://searchapi.eastmoney.com/api/suggest/get"
+      },
+      "params": {
+        "snapshot": {
+          "fields": "f43,f44,f45,f46,f47,f48,f57,f58,f59,f60,f86,f116,f117,f162,f167,f168,f169,f170,f171,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f31,f32,f33,f34,f35,f36,f37,f38,f39,f40",
+          "fltt": 2,
+          "invt": 2
+        },
+        "kline": {
+          "fields1": "f1,f2,f3,f4,f5,f6",
+          "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+          "lmt": 320,
+          "end": "20500101"
+        },
+        "trends": {
+          "fields1": "f1,f2,f3,f4,f5,f6,f7,f8",
+          "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+          "ndays": 1,
+          "iscr": 0,
+          "iscca": 1
+        },
+        "clist": {
+          "fs": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:3",
+          "fields": "f12,f14,f2,f3,f4,f5,f6,f15,f16,f17,f18,f168",
+          "pn": 1,
+          "pz": 6000,
+          "po": 1,
+          "np": 1,
+          "fltt": 2,
+          "invt": 2
+        },
+        "suggest": {
+          "type": 14,
+          "token": "D43BF722C8E33BDC906FB84D85E326E8",
+          "count": 10
+        }
+      },
+      "periods": {
+        "1m": 1,
+        "5m": 5,
+        "15m": 15,
+        "30m": 30,
+        "60m": 60,
+        "day": 101,
+        "week": 102,
+        "month": 103
+      },
+      "adjusts": {
+        "none": 0,
+        "pre": 1,
+        "post": 2
+      },
+      "field_map": {
+        "snapshot": {
+          "code": "f57",
+          "name": "f58",
+          "decimals": "f59",
+          "price": "f43",
+          "prev_close": "f60",
+          "open": "f46",
+          "high": "f44",
+          "low": "f45",
+          "volume": "f47",
+          "amount": "f48",
+          "turnover": "f168",
+          "pct": "f170",
+          "timestamp": "f86"
+        },
+        "orderbook": {
+          "bid": [[11, 12], [13, 14], [15, 16], [17, 18], [19, 20]],
+          "ask": [[31, 32], [33, 34], [35, 36], [37, 38], [39, 40]]
+        },
+        "clist": {
+          "code": "f12",
+          "name": "f14",
+          "price": "f2",
+          "high": "f15",
+          "low": "f16",
+          "open": "f17",
+          "prev_close": "f18",
+          "volume": "f5",
+          "amount": "f6",
+          "turnover": "f168"
+        },
+        "kline_columns": ["dt", "open", "close", "high", "low", "volume", "amount"],
+        "trends_columns": ["dt", "open", "close", "high", "low", "volume", "amount", "avg_price"],
+        "suggest": {
+          "root": "QuotationCodeTable",
+          "list": "Data",
+          "code": "Code",
+          "name": "Name"
+        }
+      }
+    }
+  }
+}

@@ -5,16 +5,17 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QDockWidget, QFileDialog, QHBoxLayout, QInputDialog,
-    QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QStatusBar,
-    QSystemTrayIcon, QToolBar, QToolButton, QVBoxLayout, QWidget,
+    QApplication, QComboBox, QDockWidget, QFileDialog, QHBoxLayout, QLabel,
+    QLineEdit, QMainWindow, QPushButton, QStatusBar, QSystemTrayIcon,
+    QToolBar, QToolButton, QVBoxLayout, QWidget,
 )
 
 from ..alerts import AlertEngine
 from ..config import AppConfig
-from ..models import Alert
+from ..eastmoney import SOURCE_LABEL
 from ..workers import DataService, PollController
 from . import style
+from .alerts_dialog import AlertsDialog
 from .chart import KLineChart
 from .orderbook import OrderBookPanel
 from .watchlist import WatchlistPanel
@@ -170,7 +171,8 @@ class MainWindow(QMainWindow):
     def _build_status_bar(self) -> None:
         self.sb = QStatusBar()
         self.setStatusBar(self.sb)
-        self.lbl_source = QLabel(f"数据源: {'演示(离线)' if self.service.offline else '东方财富'}")
+        label = "演示(离线)" if self.service.offline else SOURCE_LABEL
+        self.lbl_source = QLabel(f"数据源: {label}")
         self.lbl_time = QLabel("最后更新: —")
         self.lbl_conn = QLabel("[已连接]")
         self.lbl_alert = QLabel("预警: 0")
@@ -238,15 +240,9 @@ class MainWindow(QMainWindow):
             self.chart.grab().save(path)
 
     def _add_alert(self) -> None:
-        code, name = self.current
-        if not code:
+        if not self.current[0]:
             return
-        threshold, ok = QInputDialog.getDouble(
-            self, "添加价格预警", f"{name} 上穿价格：",
-            self.chart._bars[-1].close if self.chart._bars else 0.0, 0.0, 1e6, 2)
-        if ok:
-            self.engine.add(Alert(code=code, kind="price_above", threshold=threshold))
-            QMessageBox.information(self, "预警", f"已添加：{name} 上穿 {threshold:g}")
+        AlertsDialog(self.engine, self.current, parent=self).exec()
 
     # -- lifecycle ---------------------------------------------------------
     def start(self) -> None:

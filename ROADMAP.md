@@ -30,6 +30,13 @@
   `CHANGELOG.md`（新）、`README.md`
 - 验收：CI 在 push 时通过测试；`packaging/build.sh` 产出可执行文件。
 
+### T5 · 数据源独立配置文件
+- 目标：接口地址/参数/字段映射/周期复权码表/限频全部移入
+  `stockclient/data_sources.json`，支持用户覆盖层，改接口不改代码。
+- 涉及：`stockclient/data_sources.json`（新）、`stockclient/datasource.py`（新）、
+  `stockclient/eastmoney.py`、`tests/test_datasource.py`（新）、README。
+- 验收：`load_source` 深合并用户覆盖；`eastmoney` 常量来自配置；测试通过。
+
 ## 流水集成顺序
 
 1. **基线**：合并 T1–T4 前，先推送当前可用版本（v0.3.0）。
@@ -40,7 +47,8 @@
 ## 当前状态
 
 - [x] 基线可用（demo 模式端到端通过）
-- [ ] T1 分时图
-- [ ] T2 预警
-- [ ] T3 数据层
-- [ ] T4 打包/CI
+- [x] T1 分时图（走势线 + 均价线 + 分钟量）
+- [x] T2 预警（四类规则 + 管理窗口）
+- [x] T3 数据层（clist 批量 / trends2 / suggest / 指标测试）
+- [x] T4 打包 + CI + 文档
+- [x] T5 数据源独立配置文件（可用户覆盖）

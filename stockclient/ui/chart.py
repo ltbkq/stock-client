@@ -111,11 +111,16 @@ class KLineChart(QtWidgets.QWidget):
         lay.addWidget(self.glw)
 
         self._bars: list[Bar] = []
+        self._intraday = False
         self._overlay = "MA"
         self._indicator = "MACD"
 
     # -- public API --------------------------------------------------------
-    def set_bars(self, bars: list[Bar]) -> None:
+    def set_bars(self, bars: list[Bar], intraday: bool = False) -> None:
+        if intraday:
+            self.set_intraday(bars)
+            return
+        self._intraday = False
         self._bars = bars or []
         self.candles.set_bars(self._bars)
         self._draw_overlay()
@@ -125,6 +130,26 @@ class KLineChart(QtWidgets.QWidget):
             xs = [b.dt.timestamp() for b in self._bars]
             self.main.setXRange(xs[0], xs[-1], padding=0.02)
             self.main.enableAutoRange(axis="y", enable=True)
+
+    def set_intraday(self, bars: list[Bar]) -> None:
+        """分时图：主图走势线 + 均价线，副图分钟成交量（不复用蜡烛渲染）。"""
+        self._intraday = True
+        self._bars = bars or []
+        self.candles.set_bars([])  # 清空蜡烛，主图改画分时线
+        self._clear_dynamic()
+        if not self._bars:
+            self.vol.clear()
+            self.ind.clear()
+            return
+        xs = np.array([b.dt.timestamp() for b in self._bars])
+        close = ind.close_array(self._bars)
+        avg = ind.avg_price(self._bars)
+        self._dyn.append(self.main.plot(xs, close, pen=pg.mkPen("#d8dbe2", width=1.4)))
+        self._dyn.append(self.main.plot(xs, avg, pen=pg.mkPen("#f5c451", width=1.2)))
+        self._draw_volume()
+        self._draw_indicator()
+        self.main.setXRange(xs[0], xs[-1], padding=0.02)
+        self.main.enableAutoRange(axis="y", enable=True)
 
     def set_overlay(self, kind: str) -> None:
         self._overlay = kind
@@ -167,8 +192,16 @@ class KLineChart(QtWidgets.QWidget):
         xs = np.array([b.dt.timestamp() for b in self._bars])
         vols = np.array([b.volume for b in self._bars])
         span = float(np.median(np.diff(xs))) if len(xs) > 1 else 60.0
-        colors = [(226, 83, 75, 180) if b.close >= b.open else (63, 178, 127, 180)
-                  for b in self._bars]
+        if self._intraday:
+            # 分钟量按相对前一根涨跌着色
+            colors = []
+            prev = self._bars[0].open
+            for b in self._bars:
+                colors.append((226, 83, 75, 180) if b.close >= prev else (63, 178, 127, 180))
+                prev = b.close
+        else:
+            colors = [(226, 83, 75, 180) if b.close >= b.open else (63, 178, 127, 180)
+                      for b in self._bars]
         self._vol_bars = pg.BarGraphItem(x=xs, height=vols, width=span * 0.6, brushes=colors)
         self.vol.addItem(self._vol_bars)
         for n, color in ((5, "#f5c451"), (10, "#4aa3ff")):
