@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -41,9 +42,9 @@ def main() -> int:
         result["row_pct"] = win.watchlist.table.item(0, 2).text()
         result["book_price"] = win.orderbook.price.text()
         result["status"] = win.lbl_time.text()
-        out = Path("/tmp/opencode/smoke.png")
-        win.chart.grab().save(str(out))
-        result["png"] = out.exists() and out.stat().st_size
+        out = Path(os.environ.get("SMOKE_OUT", tempfile.gettempdir())) / "stockclient_smoke.png"
+        saved = win.chart.grab().save(str(out))
+        result["png"] = bool(saved) and out.exists() and out.stat().st_size
         app.quit()
 
     QTimer.singleShot(2500, check)

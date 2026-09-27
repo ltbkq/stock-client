@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -22,7 +23,7 @@ from stockclient.config import AppConfig                # noqa: E402
 from stockclient.ui.main_window import MainWindow       # noqa: E402
 from stockclient.workers import DataService             # noqa: E402
 
-OUT = Path("/tmp/opencode")
+OUT = Path(os.environ.get("SHOT_OUT", tempfile.gettempdir()))
 
 
 def main() -> int:
