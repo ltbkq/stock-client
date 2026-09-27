@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自选股行情分析客户端 · stock-client</title>
+<meta name="description" content="桌面原生 PySide6/Qt 自选股行情分析客户端，东方财富数据源，含离线演示模式。">
+<style>
+  :root{
+    --bg:#0f1217; --panel:#161b22; --panel2:#1b222c; --line:#283040;
+    --fg:#d7dce4; --muted:#8b95a5; --accent:#4aa3ff; --up:#e2534b; --down:#3fb27f;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0e13,#0f1217 240px);color:var(--fg);
+    font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  header{padding:64px 0 32px;text-align:center}
+  h1{margin:0 0 8px;font-size:34px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:16px}
+  .badges{margin-top:18px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .badges img{height:20px}
+  .btns{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:10px 20px;border-radius:999px;border:1px solid var(--line);
+    background:var(--panel);color:var(--fg)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f;font-weight:600}
+  section{padding:28px 0}
+  h2{font-size:22px;margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 18px}
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.shots{grid-template-columns:1fr}}
+  figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden}
+  figure img{display:block;width:100%;height:auto}
+  figcaption{padding:10px 14px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  pre{background:#0b0e13;border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;overflow:auto;font-size:13px;line-height:1.55}
+  code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+  .kbd{color:var(--up)} .kbd.g{color:var(--down)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  footer{padding:40px 0 60px;color:var(--muted);font-size:13px;text-align:center}
+  .note{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>自选股行情分析客户端</h1>
+    <div class="sub">桌面原生 <strong>PySide6 / Qt</strong> · 东方财富数据源 · 完全离线演示模式</div>
+    <div class="badges">
+      <a href="https://github.com/ltbkq/stock-client/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ltbkq/stock-client/actions/workflows/ci.yml/badge.svg"></a>
+      <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg">
+      <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776ab.svg">
+      <img alt="PySide6" src="https://img.shields.io/badge/PySide6-6.6%2B-41cd52.svg">
+    </div>
+    <div class="btns">
+      <a class="btn primary" href="https://github.com/ltbkq/stock-client">GitHub 仓库</a>
+      <a class="btn" href="https://github.com/ltbkq/stock-client/releases/tag/v0.4.0">v0.4.0 发布</a>
+      <a class="btn" href="https://github.com/ltbkq/stock-client/blob/main/deepseek.txt">设计文档</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览</h2>
+    <p class="lead">对应设计文档布局 A（盘口收起）与布局 B（盘口五档展开）。</p>
+    <div class="shots">
+      <figure>
+        <img src="images/layout_a.png" alt="布局 A：K 线主图 + 成交量 + 指标副图，五档收起">
+        <figcaption>布局 A · 默认：自选股 · K 线主图 + 均线 · 成交量 · MACD · 状态栏</figcaption>
+      </figure>
+      <figure>
+        <img src="images/layout_b.png" alt="布局 B：右侧盘口五档展开">
+        <figcaption>布局 B · 盘口五档展开（右侧停靠，卖 1–5 / 买 1–5）</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>功能</h2>
+    <div class="grid">
+      <div class="card"><h3>行情与图表</h3><p>自绘蜡烛图 + MA/BOLL，成交量副图，MACD / KDJ / RSI 指标副图，分时走势线 + 均价线。</p></div>
+      <div class="card"><h3>盘口与预警</h3><p>五档盘口；四类预警规则（价格上穿/下破、涨幅/跌幅超过），边沿触发 + 托盘通知。</p></div>
+      <div class="card"><h3>数据与线程</h3><p>东方财富接口，接口/字段全部外置配置；<code>QThreadPool</code> 异步轮询，UI 不阻塞。</p></div>
+      <div class="card"><h3>缓存</h3><p>K 线 SQLite 缓存（缺 <code>_sqlite3</code> 时自动降级内存）+ 快照 LRU。</p></div>
+      <div class="card"><h3>离线演示</h3><p><code>--demo</code> 使用确定性样例数据，无需网络即可运行与测试。</p></div>
+      <div class="card"><h3>可打包</h3><p>PyInstaller 单文件、无控制台窗口构建；GitHub Actions 跑单元 + 冒烟测试。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>快速开始</h2>
+<pre><code>git clone https://github.com/ltbkq/stock-client
+cd stock-client
+python3 -m venv .venv &amp;&amp; .venv/bin/pip install -r requirements.txt
+
+.venv/bin/python run.py --demo      <span class="kbd g"># 离线演示（无需网络）</span>
+.venv/bin/python run.py             <span class="kbd g"># 实时行情（东方财富）</span>
+.venv/bin/python run.py --no-proxy  <span class="kbd"># 实时，忽略系统代理</span></code></pre>
+  </section>
+
+  <section>
+    <h2>数据源配置（改接口不改代码）</h2>
+    <p class="lead">接口地址、参数、字段映射、周期复权码表、限频都在 <code>stockclient/data_sources.json</code>；
+    用户可在 <code>~/.config/stock-client/data_sources.json</code> 覆盖，与默认逐字段深合并。</p>
+<pre><code>.venv/bin/python -c "from stockclient.datasource import export_user_config as e; print(e())"
+# 编辑 ~/.config/stock-client/data_sources.json 后重启即生效</code></pre>
+  </section>
+
+  <section>
+    <h2>与设计文档的对应</h2>
+    <table>
+      <tr><th>设计文档</th><th>实现</th></tr>
+      <tr><td>布局 A / B</td><td><code>QDockWidget</code> + 工具栏 <code>[五档]</code> 切换</td></tr>
+      <tr><td>9 个界面区域</td><td><code>stockclient/ui/</code>（工具栏/自选股/主图/量/指标/盘口/底部/状态栏）</td></tr>
+      <tr><td>东方财富接入</td><td><code>eastmoney.py</code> + <code>data_sources.json</code></td></tr>
+      <tr><td>预警提醒</td><td><code>alerts.py</code> + <code>ui/alerts_dialog.py</code></td></tr>
+    </table>
+  </section>
+
+  <footer>
+    MIT License · <a href="https://github.com/ltbkq/stock-client">ltbkq/stock-client</a><br>
+    <span class="note">数据来自第三方公开接口，仅供学习研究，请遵守数据版权与使用条款。</span>
+  </footer>
+
+</div>
+</body>
+</html>

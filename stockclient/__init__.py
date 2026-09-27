@@ -1,3 +1,3 @@
 """Self-contained PySide6 A-share watchlist client (see ../../deepseek.txt)."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-27
+
 ### Added
 
 - **分时图独立渲染**：走势线 + 均价线（`indicators.avg_price`）+ 分钟成交量，
@@ -24,6 +26,21 @@
   与无头冒烟测试。
 - `CONTRIBUTING.md`：开发环境、测试、代码风格与 PR 流程说明。
 - `CHANGELOG.md`：本文件。
+
+### Changed
+
+- 数据层完全由 `data_sources.json` 驱动，`eastmoney.py` 移除全部硬编码
+  接口/字段常量。
+
+### Fixed
+
+- CI：安装 Qt 运行库（`libegl1` 等）以支持无头冒烟测试。
+- `scripts/smoke.py` / `scripts/screenshot.py` 输出路径改为可移植
+  （`SMOKE_OUT` / `SHOT_OUT`，默认临时目录），修复 CI 上 PNG 断言失败。
+
+### Docs
+
+- GitHub Pages 落地页（`docs/`）展示布局 A/B 截图与使用说明。
 
 ## [0.3.0] - 2026-09-27
 
@@ -54,5 +71,6 @@
 - **测试**：解析器与预警单元测试（`tests/`）、无头端到端冒烟测试
   （`scripts/smoke.py`）。
 
-[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.3.0

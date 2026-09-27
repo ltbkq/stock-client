@@ -8,6 +8,17 @@
 
 - 设计文档：[`deepseek.txt`](deepseek.txt)（80 列线框 + 区域/交互/数据/技术方案）
 - 许可：[MIT](LICENSE) · 仓库：https://github.com/ltbkq/stock-client
+- 在线预览（GitHub Pages）：https://ltbkq.github.io/stock-client/
+
+## 界面预览
+
+布局 A（盘口收起）：
+
+![布局 A](docs/images/layout_a.png)
+
+布局 B（盘口五档展开）：
+
+![布局 B](docs/images/layout_b.png)
 
 ## 与设计文档的对应
 
