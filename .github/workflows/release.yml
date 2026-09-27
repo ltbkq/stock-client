@@ -40,7 +40,7 @@ jobs:
       - name: Build (PyInstaller)
         run: python -m PyInstaller packaging/stockclient.spec --noconfirm
 
-      - name: Package (Linux: tar.gz + deb + rpm)
+      - name: Package (Linux tar.gz + deb + rpm)
         if: runner.os == 'Linux'
         env:
           VERSION: ${{ github.event.inputs.tag || github.ref_name }}
@@ -50,7 +50,7 @@ jobs:
           chmod +x packaging/make-packages.sh
           packaging/make-packages.sh "${VERSION#v}"
 
-      - name: Package (Windows: zip)
+      - name: Package (Windows zip)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -59,7 +59,7 @@ jobs:
           Compress-Archive -Path dist/stock-client.exe `
             -DestinationPath "dist/packages/stock-client_${v}_windows_x86_64.zip" -Force
 
-      - name: Package (macOS: zip)
+      - name: Package (macOS zip)
         if: runner.os == 'macOS'
         run: |
           v="${{ github.event.inputs.tag || github.ref_name }}"; v="${v#v}"
