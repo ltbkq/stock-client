@@ -5,6 +5,29 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-27
+
+### Fixed
+
+- **K 线渲染异常**：蜡烛影线笔宽误把数据单位（秒）当作像素宽度，日/周线下
+  `span≈86400` 使笔宽达数千像素，整张图被画成色块。改用 cosmetic 1px 画笔。
+- **分时图未接线**：`main_window._on_bars` 未传 `intraday` 标志，分时数据被
+  蜡烛渲染路径处理；现按当前周期选择分时/蜡烛渲染。
+- **分时均价线恒为 0**：离线分钟数据缺少成交额，导致均价为 0 并把主图 Y 轴
+  拉到 0；`sample.intraday_bars` 现写入 `amount`。
+- **午休/停牌连线**：分时走势线、均价线、MAVOL、MACD 线在时间间隔远大于
+  中位间隔处插入 NaN（新增纯函数 `indicators.break_gaps`），不再连成直线。
+- 分时空蜡烛包围盒不再影响主图 Y 轴范围（隐藏空 `CandlestickItem`）。
+
+### Changed
+
+- `scripts/smoke.py` / `scripts/screenshot.py` 固定为日线，输出确定；
+  截图脚本新增分时图（`intraday.png`）。
+
+### Docs
+
+- Pages 落地页增加分时图预览，并重新生成布局 A/B 截图。
+
 ## [0.4.0] - 2026-09-27
 
 ### Added
@@ -71,6 +94,7 @@
 - **测试**：解析器与预警单元测试（`tests/`）、无头端到端冒烟测试
   （`scripts/smoke.py`）。
 
-[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ltbkq/stock-client/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.1
 [0.4.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ltbkq/stock-client/releases/tag/v0.3.0

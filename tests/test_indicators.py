@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from stockclient.indicators import boll, ema, kdj, macd, ma, rsi
+from stockclient.indicators import avg_price, boll, break_gaps, ema, kdj, macd, ma, rsi
 
 
 class MaTest(unittest.TestCase):
@@ -120,6 +120,49 @@ class BollTest(unittest.TestCase):
         valid = ~np.isnan(mid)
         np.testing.assert_allclose(upper[valid], 5.0)   # std == 0
         np.testing.assert_allclose(lower[valid], 5.0)
+
+
+class BreakGapsTest(unittest.TestCase):
+    """回归：分时午休/停牌处不能被连成一条直线。"""
+
+    def test_inserts_nan_across_gap(self):
+        xs = np.array([0, 60, 120, 5400, 5460], dtype=float)   # 54x gap
+        ys = np.array([1, 2, 3, 4, 5], dtype=float)
+        gx, gy = break_gaps(xs, ys)
+        self.assertEqual(len(gx), len(xs) + 1)                 # one NaN inserted
+        self.assertTrue(np.isnan(gy).any())
+        # original samples all preserved
+        self.assertTrue(set(np.round(ys)).issubset(set(np.round(gy[~np.isnan(gy)]))))
+
+    def test_uniform_series_unchanged(self):
+        xs = np.arange(0, 600, 60, dtype=float)
+        ys = np.arange(10, dtype=float)
+        gx, gy = break_gaps(xs, ys)
+        np.testing.assert_array_equal(gx, xs)
+        np.testing.assert_array_equal(gy, ys)
+
+    def test_too_short(self):
+        gx, gy = break_gaps(np.array([0.0]), np.array([1.0]))
+        self.assertEqual(len(gx), 1)
+
+
+class AvgPriceTest(unittest.TestCase):
+    """分时均价线 = 累计成交额 / 累计成交量。"""
+
+    class _Bar:
+        def __init__(self, amount, volume):
+            self.amount, self.volume = amount, volume
+
+    def test_vwap(self):
+        bars = [self._Bar(100, 10), self._Bar(300, 10)]        # 100/10=10, 400/20=20
+        out = avg_price(bars)
+        np.testing.assert_allclose(out, [10.0, 20.0])
+
+    def test_zero_volume_is_nan(self):
+        bars = [self._Bar(0, 0), self._Bar(100, 10)]
+        out = avg_price(bars)
+        self.assertTrue(np.isnan(out[0]))
+        self.assertAlmostEqual(out[1], 10.0)
 
 
 if __name__ == "__main__":

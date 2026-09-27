@@ -60,7 +60,7 @@ def intraday_bars(code: str) -> list[Bar]:
         while t <= limit:
             price = max(0.5, price * (1 + rng.uniform(-0.0015, 0.0015)))
             vol = rng.uniform(1e4, 6e5)
-            bars.append(Bar(t, price, price, price, price, round(vol)))
+            bars.append(Bar(t, price, price, price, price, round(vol), round(vol * price)))
             t += timedelta(minutes=1)
     return bars
 

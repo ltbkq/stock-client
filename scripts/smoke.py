@@ -27,6 +27,7 @@ def main() -> int:
     cfg = AppConfig.load()
     cfg.demo_mode = True
     cfg.show_orderbook = True
+    cfg.period = "day"
     cfg.refresh_seconds = 1
 
     app = QApplication(sys.argv)

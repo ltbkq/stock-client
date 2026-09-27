@@ -198,7 +198,7 @@ class MainWindow(QMainWindow):
 
     def _on_bars(self, code: str, bars) -> None:
         if code == self.current[0]:
-            self.chart.set_bars(bars)
+            self.chart.set_bars(bars, intraday=(self.controller.period == "intraday"))
 
     def _on_alert(self, trigger) -> None:
         self._triggered = getattr(self, "_triggered", [])

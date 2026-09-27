@@ -19,6 +19,26 @@ def avg_price(bars) -> np.ndarray:
     return out
 
 
+def break_gaps(xs: np.ndarray, ys: np.ndarray, factor: float = 3.0):
+    """在时间间隔远大于中位间隔处插入 NaN，避免午休/停牌被连成直线。"""
+    xs = np.asarray(xs, dtype=float)
+    ys = np.asarray(ys, dtype=float)
+    if len(xs) < 3:
+        return xs, ys
+    diffs = np.diff(xs)
+    step = float(np.median(diffs))
+    if step <= 0 or not (diffs > step * factor).any():
+        return xs, ys
+    gx, gy = [xs[0]], [ys[0]]
+    for i in range(1, len(xs)):
+        if xs[i] - xs[i - 1] > step * factor:
+            gx.append((xs[i - 1] + xs[i]) / 2.0)
+            gy.append(np.nan)
+        gx.append(xs[i])
+        gy.append(ys[i])
+    return np.asarray(gx), np.asarray(gy)
+
+
 def ma(values: np.ndarray, n: int) -> np.ndarray:
     if len(values) < n:
         return np.full(len(values), np.nan)

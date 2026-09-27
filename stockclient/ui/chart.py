@@ -49,7 +49,8 @@ class CandlestickItem(pg.GraphicsObject):
             rising = bar.close >= bar.open
             color = UP if rising else DOWN
             pen = QtGui.QPen(QtGui.QColor(color))
-            pen.setWidthF(max(1.0, self._width * 0.06))
+            pen.setCosmetic(True)          # pen width is device px, not data units
+            pen.setWidthF(1.0)
             painter.setPen(pen)
             painter.drawLine(QtCore.QPointF(x, bar.low), QtCore.QPointF(x, bar.high))
             painter.setBrush(QtGui.QBrush(QtGui.QColor(color)))
@@ -122,6 +123,7 @@ class KLineChart(QtWidgets.QWidget):
             return
         self._intraday = False
         self._bars = bars or []
+        self.candles.setVisible(True)
         self.candles.set_bars(self._bars)
         self._draw_overlay()
         self._draw_volume()
@@ -135,7 +137,8 @@ class KLineChart(QtWidgets.QWidget):
         """分时图：主图走势线 + 均价线，副图分钟成交量（不复用蜡烛渲染）。"""
         self._intraday = True
         self._bars = bars or []
-        self.candles.set_bars([])  # 清空蜡烛，主图改画分时线
+        self.candles.set_bars([])          # 清空蜡烛，主图改画分时线
+        self.candles.setVisible(False)     # 隐藏以免空包围盒把 Y 轴拉到 0
         self._clear_dynamic()
         if not self._bars:
             self.vol.clear()
@@ -144,8 +147,10 @@ class KLineChart(QtWidgets.QWidget):
         xs = np.array([b.dt.timestamp() for b in self._bars])
         close = ind.close_array(self._bars)
         avg = ind.avg_price(self._bars)
-        self._dyn.append(self.main.plot(xs, close, pen=pg.mkPen("#d8dbe2", width=1.4)))
-        self._dyn.append(self.main.plot(xs, avg, pen=pg.mkPen("#f5c451", width=1.2)))
+        gx, gclose = ind.break_gaps(xs, close)
+        _, gavg = ind.break_gaps(xs, avg)
+        self._dyn.append(self.main.plot(gx, gclose, pen=pg.mkPen("#d8dbe2", width=1.4)))
+        self._dyn.append(self.main.plot(gx, gavg, pen=pg.mkPen("#f5c451", width=1.2)))
         self._draw_volume()
         self._draw_indicator()
         self.main.setXRange(xs[0], xs[-1], padding=0.02)
@@ -170,6 +175,8 @@ class KLineChart(QtWidgets.QWidget):
         self._dyn = []
 
     def _draw_overlay(self) -> None:
+        if self._intraday:
+            return                       # 分时只用走势线 + 均价线，不用 MA/BOLL 叠加
         self._clear_dynamic()
         if not self._bars:
             return
@@ -205,7 +212,9 @@ class KLineChart(QtWidgets.QWidget):
         self._vol_bars = pg.BarGraphItem(x=xs, height=vols, width=span * 0.6, brushes=colors)
         self.vol.addItem(self._vol_bars)
         for n, color in ((5, "#f5c451"), (10, "#4aa3ff")):
-            self.vol.plot(xs, ind.ma(vols, n), pen=pg.mkPen(color, width=1.0))
+            y = ind.ma(vols, n)
+            gx, gy = ind.break_gaps(xs, y) if self._intraday else (xs, y)
+            self.vol.plot(gx, gy, pen=pg.mkPen(color, width=1.0))
 
     def _draw_indicator(self) -> None:
         self.ind.clear()
@@ -216,19 +225,24 @@ class KLineChart(QtWidgets.QWidget):
         high = np.array([b.high for b in self._bars])
         low = np.array([b.low for b in self._bars])
         span = float(np.median(np.diff(xs))) if len(xs) > 1 else 60.0
+
+        def line(y, pen):
+            gx, gy = ind.break_gaps(xs, y) if self._intraday else (xs, y)
+            self.ind.plot(gx, gy, pen=pen)
+
         if self._indicator == "MACD":
             dif, dea, hist = ind.macd(close)
             colors = [(226, 83, 75, 180) if v >= 0 else (63, 178, 127, 180) for v in np.nan_to_num(hist)]
             self.ind.addItem(pg.BarGraphItem(x=xs, height=hist, width=span * 0.6, brushes=colors))
-            self.ind.plot(xs, dif, pen=pg.mkPen("#f5c451", width=1.1))
-            self.ind.plot(xs, dea, pen=pg.mkPen("#4aa3ff", width=1.1))
+            line(dif, pg.mkPen("#f5c451", width=1.1))
+            line(dea, pg.mkPen("#4aa3ff", width=1.1))
         elif self._indicator == "KDJ":
             k, d, j = ind.kdj(high, low, close)
-            self.ind.plot(xs, k, pen=pg.mkPen("#f5c451"))
-            self.ind.plot(xs, d, pen=pg.mkPen("#4aa3ff"))
-            self.ind.plot(xs, j, pen=pg.mkPen("#c77dff"))
+            line(k, pg.mkPen("#f5c451"))
+            line(d, pg.mkPen("#4aa3ff"))
+            line(j, pg.mkPen("#c77dff"))
         elif self._indicator == "RSI":
-            self.ind.plot(xs, ind.rsi(close, 14), pen=pg.mkPen("#f5c451"))
+            line(ind.rsi(close, 14), pg.mkPen("#f5c451"))
 
     def _on_mouse(self, pos) -> None:
         if not self._bars or not self.main.sceneBoundingRect().contains(pos):

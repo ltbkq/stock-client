@@ -30,6 +30,7 @@ def main() -> int:
     cfg = AppConfig.load()
     cfg.demo_mode = True
     cfg.show_orderbook = False
+    cfg.period = "day"          # screenshots are always the daily K-line view
     cfg.refresh_seconds = 1
 
     app = QApplication(sys.argv)
@@ -38,8 +39,6 @@ def main() -> int:
     win.show()
     win.start()
 
-    steps = []
-
     def grab_a():
         win.grab().save(str(OUT / "layout_a.png"))
         win.book_btn.setChecked(True)          # switch to layout B
@@ -47,11 +46,17 @@ def main() -> int:
 
     def grab_b():
         win.grab().save(str(OUT / "layout_b.png"))
+        win.book_btn.setChecked(False)
+        win.period.setCurrentIndex(0)          # 分时
+        QTimer.singleShot(1400, grab_c)
+
+    def grab_c():
+        win.chart.grab().save(str(OUT / "intraday.png"))
         app.quit()
 
     QTimer.singleShot(2200, grab_a)
     app.exec()
-    for name in ("layout_a.png", "layout_b.png"):
+    for name in ("layout_a.png", "layout_b.png", "intraday.png"):
         p = OUT / name
         print(name, p.stat().st_size if p.exists() else "MISSING")
     return 0
